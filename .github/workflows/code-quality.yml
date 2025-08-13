@@ -32,12 +32,12 @@ jobs:
       - name: Build project without tests
         run: mvn compile -DskipTests -B
 
-      - name: Spotless check with Reviewdog
-        uses: reviewdog/action-maven@v2
+      - name: Run Spotless check with Reviewdog
+        uses: reviewdog/action-spotless@v2
         with:
-          maven_goals: "spotless:check"
-          reporter: "github-pr-review"
-          level: "error"
+          reporter: github-pr-review
+          level: error
+          fail_on_error: true
 
       # 5. Optional: Vorschläge automatisch generieren
       - name: Generate Patch Suggestions
