@@ -182,7 +182,7 @@ class GelfLogHandlerRedisIntegrationTests {
             public void execute() throws Throwable {
                 new RedisGelfSenderProvider().create(configuration);
             }
-        });
+     });
     }
 
     @Test
