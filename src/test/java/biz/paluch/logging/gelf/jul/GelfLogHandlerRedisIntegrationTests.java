@@ -188,7 +188,7 @@ class GelfLogHandlerRedisIntegrationTests {
     @Test
  void testRedisNotAvailable() throws Exception {
 
-        LogManager.getLogManager()
+      LogManager.getLogManager()
                 .readConfiguration(getClass().getResourceAsStream("/jul/test-redis-not-available.properties"));
 
         Logger logger = Logger.getLogger(getClass().getName());
