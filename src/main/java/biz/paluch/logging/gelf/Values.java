@@ -22,9 +22,7 @@ public class Values {
         if (name != null && value != null) {
             values.put(name, value);
         }
-    }
-
-    public boolean hasValues() {
+    }public boolean hasValues() {
         return ! values.isEmpty();
     }
 
