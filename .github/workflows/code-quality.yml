@@ -2,7 +2,8 @@ name: Code Quality Check
 
 on:
   pull_request:
-    branches: [ "/ci/codequality/spotless" ]
+    branches:
+      - "/ci/codequality/spotless"
 
 jobs:
   code-quality:
