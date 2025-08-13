@@ -16,7 +16,6 @@ jobs:
         run: echo "Dieser Job läuft immer, egal was passiert."
 
 
-jobs:
   code-quality:
     runs-on: ubuntu-latest
 
