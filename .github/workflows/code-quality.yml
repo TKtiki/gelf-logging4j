@@ -2,7 +2,7 @@ name: Code Quality Check
 
 on:
   pull_request:
-    branches: [ "ci/codequality/spotless" ]
+    branches: [ main ]
 
 jobs:
   code-quality:
@@ -19,11 +19,10 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Run Spotless with reviewdog for inline PR comments
-      - name: Run Spotless check with reviewdog
-        uses: reviewdog/action-mvn@v2
+      - name: Run Spotless check and send to reviewdog
+        uses: reviewdog/action-suggester@v1
         with:
-          maven_goals: "spotless:check"
-          reporter: github-pr-review    # Alternativ: github-pr-check
-          level: error                  # Markiert als Fehler
-          fail_on_error: true            # PR-Check schlägt fehl
+          tool_name: spotless
+          # Führt Spotless im Apply-Mode aus, damit Vorschläge generiert werden
+          # Dann gibt reviewdog die Änderungen als "Suggestions" im PR aus
+          command: mvn spotless:apply
