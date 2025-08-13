@@ -32,21 +32,24 @@ jobs:
       - name: Build project without tests
         run: mvn compile -DskipTests -B
 
-      - name: Run Spotless check with Reviewdog
-        uses: reviewdog/action-spotless@v2
-        with:
-          reporter: github-pr-review
-          level: error
-          fail_on_error: true
-
-      # 5. Optional: Vorschläge automatisch generieren
-      - name: Generate Patch Suggestions
-        if: github.event_name == 'pull_request'
+      - name: Install Reviewdog
         run: |
-          mvn spotless:apply -B
-          git diff > patch.diff || true
-          if [ -s patch.diff ]; then
-            echo "Patch generated. Suggestions could be applied manually."
-          else
-            echo "No changes from Spotless."
-          fi
+          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
+        shell: bash
+
+      - name: Run Spotless check and report to Reviewdog
+        run: |
+          mvn spotless:check -B 2>&1 | reviewdog -f=checkstyle -name="spotless" -reporter=github-pr-review -level=error
+        shell: bash
+#
+#      # 5. Optional: Vorschläge automatisch generieren
+#      - name: Generate Patch Suggestions
+#        if: github.event_name == 'pull_request'
+#        run: |
+#          mvn spotless:apply -B
+#          git diff > patch.diff || true
+#          if [ -s patch.diff ]; then
+#            echo "Patch generated. Suggestions could be applied manually."
+#          else
+#            echo "No changes from Spotless."
+#          fi
