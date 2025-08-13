@@ -2,10 +2,19 @@ name: Code Quality Check
 
 on:
   pull_request:
-    branches:
-      - "/ci/codequality/spotless"
+    branches: [ "ci/codequality/spotless" ]
 
 jobs:
+  always-run:
+    runs-on: ubuntu-latest
+    if: ${{ always() }}   # läuft immer, selbst wenn andere Jobs fehlschlagen
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Always run job
+        run: echo "Dieser Job läuft immer, egal was passiert."
+
   code-quality:
     runs-on: ubuntu-latest
 
