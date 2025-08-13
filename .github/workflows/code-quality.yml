@@ -15,13 +15,17 @@ jobs:
       - name: Always run job
         run: echo "Dieser Job läuft immer, egal was passiert."
 
+
+jobs:
   code-quality:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Code auschecken
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2. JDK einrichten
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -29,10 +33,34 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Run Spotless check and send to reviewdog
-        uses: reviewdog/action-suggester@v1
-        with:
-          tool_name: spotless
-          # Führt Spotless im Apply-Mode aus, damit Vorschläge generiert werden
-          # Dann gibt reviewdog die Änderungen als "Suggestions" im PR aus
-          command: mvn spotless:apply
+      # 3. Maven Dependencies bauen
+      - name: Build project without tests
+        run: mvn compile -DskipTests -B
+
+      # 4. Spotless Check ausführen und Reviewdog Kommentare posten
+      - name: Run Spotless check with reviewdog
+        run: |
+          # Spotless Check in Checkstyle-Format ausgeben
+          mvn spotless:check -B | tee spotless.log
+          # Reviewdog ausführen
+          docker run --rm -i \
+            -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
+            -w $GITHUB_WORKSPACE \
+            reviewdog/reviewdog:latest \
+            -f=checkstyle \
+            -name="spotless" \
+            -reporter=github-pr-review \
+            -level=error \
+            < spotless.log
+
+      # 5. Optional: Vorschläge automatisch generieren
+      - name: Generate Patch Suggestions
+        if: github.event_name == 'pull_request'
+        run: |
+          mvn spotless:apply -B
+          git diff > patch.diff || true
+          if [ -s patch.diff ]; then
+            echo "Patch generated. Suggestions could be applied manually."
+          else
+            echo "No changes from Spotless."
+          fi
