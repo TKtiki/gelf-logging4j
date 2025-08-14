@@ -61,3 +61,9 @@ jobs:
 
       - name: Run Integration Tests
         run: mvn --batch-mode failsafe:integration-test failsafe:verify
+
+      - name: Publish Integration Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: '**/target/failsafe-reports/*.xml'
