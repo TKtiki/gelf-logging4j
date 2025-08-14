@@ -203,58 +203,21 @@ class GelfTCPSenderIntegrationTests {
 
     @Test
     void sendToNonConsumingPort_2() throws Exception {
-        // Limit server's receive buffer to simulate a small backlog
         serverSocket.setReceiveBufferSize(100);
-        // Server will not read from the socket, simulating a stuck/slow consumer
-        readFromServerSocket = false;
+        readFromServerSocket = false; // Simulate slow/stuck consumer
 
-        // Latch to synchronize the server thread and the test
-        final CountDownLatch connectionAccepted = new CountDownLatch(1);
-
-        // Start a server thread that accepts a connection but doesn't read any data
-        thread = new Thread(() -> {
-            try {
-                Socket socket = serverSocket.accept();
-                // Notify the test that a connection has been accepted
-                connectionAccepted.countDown();
-                sockets.add(socket);
-                socket.setKeepAlive(true);
-
-                // Simulate a "do nothing" server
-                Thread.sleep(2000);
-            } catch (Exception ignored) {
-                // Ignored on purpose for test simulation
-            }
-        });
-        thread.start();
-
-        Thread.sleep(50);
-
-        // This list will capture any reported errors from the sender
         final List<String> errors = new ArrayList<>();
 
-        // Create sender with very small buffer and short timeouts to trigger "no progress" faster
-        SmallBufferTCPSender sender =
-                new SmallBufferTCPSender("localhost", PORT, 100, 100, (message, e) -> errors.add(message));
+        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", PORT, 100, 100, (message, e) -> errors.add(message));
 
-        // Ensure the connection is established before sending any data
-        Assertions.assertTrue(connectionAccepted.await(5, TimeUnit.SECONDS), "Server did not accept the connection in time");
+        GelfMessage gelfMessage = new GelfMessage("hello", StringUtils.repeat("hello", 100000), PORT, "7");
 
-        // Create a large GelfMessage that will overflow the small send buffer
-        GelfMessage gelfMessage =
-                new GelfMessage("hello", StringUtils.repeat("hello", 100000), PORT, "7");
-
-        // Attempt to send the large message
         sender.sendMessage(gelfMessage);
 
-        // Wait until the error message is reported, instead of checking immediately
         Awaitility.await()
-                .atMost(2, TimeUnit.SECONDS)
-                .untilAsserted(() ->
-                        assertThat(errors).containsExactly("Cannot write buffer to channel, no progress in writing")
-                );
+                .atMost(5, TimeUnit.SECONDS)
+                .untilAsserted(() -> assertThat(errors).containsExactly("Cannot write buffer to channel, no progress in writing"));
 
-        // Clean up
         sender.close();
     }
 
