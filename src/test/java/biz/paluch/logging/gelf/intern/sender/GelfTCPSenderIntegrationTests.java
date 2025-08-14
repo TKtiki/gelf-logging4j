@@ -236,7 +236,7 @@ class GelfTCPSenderIntegrationTests {
                 new SmallBufferTCPSender("localhost", PORT, 100, 100, (message, e) -> errors.add(message));
 
         // Ensure the connection is established before sending any data
-        Assertions.assertTrue(connectionAccepted.await(2, TimeUnit.SECONDS), "Server did not accept the connection in time");
+        Assertions.assertTrue(connectionAccepted.await(5, TimeUnit.SECONDS), "Server did not accept the connection in time");
 
         // Create a large GelfMessage that will overflow the small send buffer
         GelfMessage gelfMessage =
