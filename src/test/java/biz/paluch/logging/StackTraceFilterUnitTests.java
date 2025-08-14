@@ -25,6 +25,7 @@ class StackTraceFilterUnitTests {
         StackTraceFilter.loadSetttings("StackTraceFilterTest.properties");
     }
 
+
     @Test
     void testFindThrowable() {
 
