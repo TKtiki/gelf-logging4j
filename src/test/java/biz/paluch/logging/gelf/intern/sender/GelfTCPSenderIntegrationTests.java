@@ -212,6 +212,7 @@ class GelfTCPSenderIntegrationTests {
 
         GelfMessage gelfMessage = new GelfMessage("hello", StringUtils.repeat("hello", 100000), PORT, "7");
 
+        Thread.sleep(50);
         sender.sendMessage(gelfMessage);
 
         Awaitility.await()
