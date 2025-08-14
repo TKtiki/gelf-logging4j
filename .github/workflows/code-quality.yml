@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [ "ci/codequality/spotless" ]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   always-run:
     runs-on: ubuntu-latest
@@ -36,6 +40,8 @@ jobs:
           reviewdog_version: latest
 
       - name: Run Spotless in check mode and report
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mvn spotless:apply
           git diff --exit-code > diff.patch || true
@@ -43,6 +49,7 @@ jobs:
             reviewdog -f=diff -name="Spotless" -reporter=github-pr-review < diff.patch
             exit 1
           fi
+
 #
 #      # 5. Optional: Vorschläge automatisch generieren
 #      - name: Generate Patch Suggestions
