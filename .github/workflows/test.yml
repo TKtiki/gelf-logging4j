@@ -35,6 +35,7 @@ jobs:
         if: always()
         with:
           report_paths: '**/target/surefire-reports/*.xml'
+          check_name: "JUnit Unit Test Report"
 
   integration-tests:
     name: Integration Tests
@@ -70,3 +71,4 @@ jobs:
         if: always()
         with:
           report_paths: '**/target/failsafe-reports/*.xml'
+          check_name: "JUnit Integration Test Report"
