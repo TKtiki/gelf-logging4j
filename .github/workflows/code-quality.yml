@@ -32,10 +32,10 @@ jobs:
       - name: Build project without tests
         run: mvn compile -DskipTests -B
 
-      - name: Install Reviewdog
-        run: |
-          curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
-        shell: bash
+      - name: Setup Reviewdog
+        uses: reviewdog/action-setup@e04ffabe3898a0af8d0fb1af00c188831c4b5893
+        with:
+          reviewdog_version: latest
 
       - name: Run Spotless check and report to Reviewdog
         run: |
