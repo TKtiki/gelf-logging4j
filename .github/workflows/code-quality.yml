@@ -16,33 +16,33 @@ jobs:
         run: echo "Dieser Job läuft immer, egal was passiert."
 
 
-  code-quality:
+
+  spotless-review:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
 
-      - name: Build project without tests
-        run: mvn compile -DskipTests -B
-
-      - name: Setup Reviewdog
-        uses: reviewdog/action-setup@e04ffabe3898a0af8d0fb1af00c188831c4b5893
+      - name: Install reviewdog
+        uses: reviewdog/action-setup@v1
         with:
           reviewdog_version: latest
 
-      - name: Run Spotless check and report to Reviewdog
+      - name: Run Spotless in check mode and report
         run: |
-          mvn spotless:check -B 2>&1 | reviewdog -f=diff -name="spotless" -reporter=github-pr-review -level=error
-        env:
-          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
+          mvn spotless:apply
+          git diff --exit-code > diff.patch || true
+          if [ -s diff.patch ]; then
+            reviewdog -f=diff -name="Spotless" -reporter=github-pr-review < diff.patch
+            exit 1
+          fi
 #
 #      # 5. Optional: Vorschläge automatisch generieren
 #      - name: Generate Patch Suggestions
