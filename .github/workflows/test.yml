@@ -30,6 +30,12 @@ jobs:
       - name: Run Unit Tests
         run: mvn --batch-mode test
 
+      - name: Publish Unit Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: always() # auch bei Fehlern ausführen
+        with:
+          report_paths: '**/target/surefire-reports/*.xml'
+
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
