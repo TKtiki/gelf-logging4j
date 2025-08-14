@@ -22,7 +22,6 @@ public class DynamicMdcMessageField implements MessageField {
     public Pattern getPattern() {
         return pattern;
     }
-
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
