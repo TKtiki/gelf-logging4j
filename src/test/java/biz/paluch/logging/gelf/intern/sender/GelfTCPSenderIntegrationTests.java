@@ -228,6 +228,8 @@ class GelfTCPSenderIntegrationTests {
         });
         thread.start();
 
+        Thread.sleep(50);
+
         // This list will capture any reported errors from the sender
         final List<String> errors = new ArrayList<>();
 
