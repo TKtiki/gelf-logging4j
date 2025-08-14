@@ -39,7 +39,7 @@ jobs:
 
       - name: Run Spotless check and report to Reviewdog
         run: |
-          mvn spotless:check -B 2>&1 | reviewdog -f=checkstyle -name="spotless" -reporter=github-pr-review -level=error
+          mvn spotless:check -B 2>&1 | reviewdog -f=diff -name="spotless" -reporter=github-pr-review -level=error
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
