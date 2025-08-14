@@ -6,8 +6,7 @@ import java.util.regex.Pattern;
  * @author Mark Paluch
  * @since 28.02.14 09:56
  */
-public class DynamicMdcMessageField implements MessageField {
-    private String regex;
+public class DynamicMdcMessageField implements MessageField {    private String regex;
     private Pattern pattern;
 
     public DynamicMdcMessageField(String regex) {
