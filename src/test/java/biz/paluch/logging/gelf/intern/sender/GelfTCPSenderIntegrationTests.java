@@ -62,22 +62,37 @@ class GelfTCPSenderIntegrationTests {
                     InputStream inputStream = socket.getInputStream();
 
                     if (readFromServerSocket) {
-                        IOUtils.copy(inputStream, out);
+                        // Liest kontinuierlich, bis der Socket geschlossen wird,
+                        // dann weiter mit nächstem accept()
+                        try {
+                            IOUtils.copy(inputStream, out);
+                        } catch (IOException ignored) {
+                        }
                     } else {
-                        while (!socket.isClosed() && loopActive) {
-                            Thread.sleep(50);
+                        // Non-Consuming-Mode: Verbindung offen halten, damit Buffer vollläuft
+                        while (loopActive && !socket.isClosed()) {
+                            try {
+                                Thread.sleep(50);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                break;
+                            }
                         }
                     }
 
-                    socket.close();
+                    // Socket wird hier bewusst nicht sofort geschlossen,
+                    // damit im Non-Consuming-Test die Blockade entstehen kann.
+                    try {
+                        socket.close();
+                    } catch (IOException ignored) {
+                    }
                 }
             } catch (IOException ignored) {
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
             }
             return out;
         });
     }
+
 
 
 
