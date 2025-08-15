@@ -12,7 +12,6 @@ public class MdcMessageField implements MessageField {
         this.mdcName = mdcName;
         this.name = name;
     }
-
     public String getMdcName() {
         return mdcName;
     }

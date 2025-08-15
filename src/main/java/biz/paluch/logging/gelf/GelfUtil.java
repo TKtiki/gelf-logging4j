@@ -30,7 +30,7 @@ public class GelfUtil {
 
     private GelfUtil() {
 
-    }
+  }
 
     public static void addMdcProfiling(LogEvent logEvent, GelfMessage gelfMessage) {
 

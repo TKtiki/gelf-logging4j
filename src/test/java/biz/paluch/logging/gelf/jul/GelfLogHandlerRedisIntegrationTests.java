@@ -182,13 +182,13 @@ class GelfLogHandlerRedisIntegrationTests {
             public void execute() throws Throwable {
                 new RedisGelfSenderProvider().create(configuration);
             }
-        });
+     });
     }
 
     @Test
-    void testRedisNotAvailable() throws Exception {
+ void testRedisNotAvailable() throws Exception {
 
-        LogManager.getLogManager()
+      LogManager.getLogManager()
                 .readConfiguration(getClass().getResourceAsStream("/jul/test-redis-not-available.properties"));
 
         Logger logger = Logger.getLogger(getClass().getName());
