@@ -170,27 +170,26 @@ class GelfTCPSenderIntegrationTests {
     @Test
     void sendToNonConsumingPort() throws Exception {
 
-        serverSocket.setReceiveBufferSize(100);
-        readFromServerSocket = false; // emulate read delays on a server side
+        serverSocket.setReceiveBufferSize(50); // kleiner Buffer
+        readFromServerSocket = false; // Server liest nichts
         serverThread.start();
-        final List<String> errors = new ArrayList<>();
 
-        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", port, 1000, 1000, new ErrorReporter() {
-            @Override
-            public void reportError(String message, Exception e) {
-                errors.add(message);
-            }
-        });
+        final List<String> errors = new ArrayList<>();
+        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", port, 1000, 1000, (msg, e) -> errors.add(msg));
 
         GelfMessage gelfMessage = new GelfMessage("hello", StringUtils.repeat("hello", 100000), port, "7");
 
         sender.sendMessage(gelfMessage);
+
+        // Kurzes Warten, damit der ErrorReporter auf GitHub Actions greifen kann
+        Thread.sleep(200);
 
         assertThat(errors).hasSize(1);
         assertThat(errors).containsOnly("Cannot write buffer to channel, no progress in writing");
 
         sender.close();
     }
+
 
     static class SmallBufferTCPSender extends GelfTCPSender {
 
