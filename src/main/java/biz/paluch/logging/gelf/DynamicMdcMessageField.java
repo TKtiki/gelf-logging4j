@@ -9,6 +9,8 @@ import java.util.regex.Pattern;
 public class DynamicMdcMessageField implements MessageField {    private String regex;
     private Pattern pattern;
 
+
+
     public DynamicMdcMessageField(String regex) {
         this.regex = regex;
         this.pattern = Pattern.compile(regex);
