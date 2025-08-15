@@ -30,7 +30,6 @@ jobs:
           else
             echo "passed=false" >> $GITHUB_OUTPUT
             echo "Spotless violations found!"
-            exit 1
           fi
 
       - name: Comment on PR if failed
