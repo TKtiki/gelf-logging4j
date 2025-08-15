@@ -32,6 +32,7 @@ public class DynamicMdcMessageField implements MessageField {
         return sb.toString();
     }
 
+
     @Override
     public String getName() {
         return null;
