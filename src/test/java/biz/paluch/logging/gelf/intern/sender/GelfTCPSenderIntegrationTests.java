@@ -143,6 +143,7 @@ class GelfTCPSenderIntegrationTests {
         assertThat(sender.sendMessage(gelfMessage)).isTrue();
 
         sender.close();
+
     }
 
     @Test
