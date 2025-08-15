@@ -2,7 +2,7 @@ name: Spotless Check
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
 
 permissions:
   contents: read
@@ -16,19 +16,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          java-version: '21'
+          distribution: 'temurin'
 
       - name: Run Spotless check
         id: spotless
         run: |
-          if ./gradlew spotlessCheck; then
+          if ./mvnw spotless:check; then
             echo "passed=true" >> $GITHUB_OUTPUT
           else
             echo "passed=false" >> $GITHUB_OUTPUT
+            echo "Spotless violations found!"
+            exit 1
           fi
 
       - name: Comment on PR if failed
@@ -40,7 +42,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "⚠️ **Spotless Check**: Dein Code entspricht nicht dem Style-Guide.\nBitte `./gradlew spotlessApply` ausführen und die Änderungen committen."
+              body: "⚠️ **Spotless Check**: Dein Code entspricht nicht dem Style-Guide.\nBitte `mvn spotless:apply` ausführen und die Änderungen committen."
             })
 
 #name: Code Quality Check
