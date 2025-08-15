@@ -25,91 +25,80 @@ import org.junit.jupiter.api.Test;
 import biz.paluch.logging.gelf.intern.ErrorReporter;
 import biz.paluch.logging.gelf.intern.GelfMessage;
 
-/**
- * @author <a href="mailto:mpaluch@paluch.biz">Mark Paluch</a>
- */
 class GelfTCPSenderIntegrationTests {
 
     private static final int PORT = 1234;
     private ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-    private final CountDownLatch latch = new CountDownLatch(1);
     private final Queue<Socket> sockets = new LinkedBlockingQueue<>();
     private volatile ServerSocket serverSocket;
     private volatile boolean loopActive = true;
     private volatile boolean readFromServerSocket = true;
 
     private Thread thread;
+    private CountDownLatch serverReady;
 
     @BeforeEach
     void setUp() throws Exception {
+
         serverSocket = new ServerSocket(PORT);
         serverSocket.setSoTimeout(10000);
-
-        CountDownLatch serverReady = new CountDownLatch(1);
+        serverReady = new CountDownLatch(1);
 
         thread = new Thread("GelfTCPSenderIntegrationTest-server") {
+
             @Override
             public void run() {
+                loopActive = true;
                 try {
-                    serverReady.countDown(); // Signal: Server lauscht
+                    serverReady.countDown(); // Server ist bereit
                     while (loopActive) {
                         Socket socket = serverSocket.accept();
                         sockets.add(socket);
                         socket.setKeepAlive(true);
                         InputStream inputStream = socket.getInputStream();
 
-                        byte[] buffer = new byte[8192];
-                        int read;
-                        while (!socket.isClosed() && (read = inputStream.read(buffer)) != -1) {
+                        byte[] buffer = new byte[1024];
+                        while (!socket.isClosed()) {
                             if (readFromServerSocket) {
+                                int read = inputStream.read(buffer);
+                                if (read == -1) {
+                                    break;
+                                }
                                 out.write(buffer, 0, read);
-                            }
-                            if (latch.getCount() == 0) {
-                                socket.close();
+                            } else {
+                                Thread.sleep(1);
                             }
                         }
                     }
-                } catch (IOException ignore) {
+                } catch (IOException | InterruptedException ignored) {
                 }
             }
         };
-        thread.start();
-
-        // Warte, bis Server bereit ist
-        if (!serverReady.await(5, TimeUnit.SECONDS)) {
-            throw new IllegalStateException("Server thread did not start in time");
-        }
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown() throws IOException, InterruptedException {
         loopActive = false;
-        latch.countDown();
-
-        for (Socket s : sockets) {
-            try { s.close(); } catch (IOException ignored) {}
-        }
-        if (serverSocket != null && !serverSocket.isClosed()) {
+        thread.interrupt();
+        if (!serverSocket.isClosed()) {
             serverSocket.close();
         }
-
-        try {
-            thread.join(2000);
-        } catch (InterruptedException ignored) {}
+        thread.join(2000);
+        for (Socket socket : sockets) {
+            if (!socket.isClosed()) {
+                socket.close();
+            }
+        }
     }
-
 
     @Test
     void simpleTransport() throws Exception {
 
         thread.start();
+        serverReady.await(2, TimeUnit.SECONDS);
 
-        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", PORT, 1000, 1000, new ErrorReporter() {
-            @Override
-            public void reportError(String message, Exception e) {
-            }
-        });
+        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", PORT, 1000, 1000, (m, e) -> {});
 
         GelfMessage gelfMessage = new GelfMessage("hello", StringUtils.repeat("hello", 100000), PORT, "7");
         ByteBuffer byteBuffer = gelfMessage.toTCPBuffer();
@@ -119,9 +108,7 @@ class GelfTCPSenderIntegrationTests {
         sender.close();
 
         loopActive = false;
-        latch.countDown();
-
-        thread.join();
+        thread.join(2000);
 
         assertThat(out.size()).isEqualTo(size);
     }
@@ -130,22 +117,19 @@ class GelfTCPSenderIntegrationTests {
     void shouldRecoverFromBrokenPipe() throws Exception {
 
         thread.start();
+        serverReady.await(2, TimeUnit.SECONDS);
 
-        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", PORT, 1000, 1000, new ErrorReporter() {
-            @Override
-            public void reportError(String message, Exception e) {
-            }
-        });
+        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", PORT, 1000, 1000, (m, e) -> {});
 
         GelfMessage gelfMessage = new GelfMessage("hello", StringUtils.repeat("hello", 100000), PORT, "7");
-        ByteBuffer byteBuffer = gelfMessage.toTCPBuffer();
 
         assertThat(sender.sendMessage(gelfMessage)).isTrue();
 
-        sockets.poll().close();
+        Socket s = sockets.poll();
+        s.close();
+        Thread.sleep(50); // sicherstellen, dass Socket wirklich geschlossen ist
 
         assertThat(sender.sendMessage(gelfMessage)).isTrue();
-
         sender.close();
     }
 
@@ -153,27 +137,30 @@ class GelfTCPSenderIntegrationTests {
     void shouldRecoverFromClosedPort() throws Exception {
 
         thread.start();
+        serverReady.await(2, TimeUnit.SECONDS);
 
-        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", PORT, 1000, 1000, new ErrorReporter() {
-            @Override
-            public void reportError(String message, Exception e) {
-            }
-        });
+        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", PORT, 1000, 1000, (m, e) -> {});
 
         GelfMessage gelfMessage = new GelfMessage("hello", StringUtils.repeat("hello", 100000), PORT, "7");
-        ByteBuffer byteBuffer = gelfMessage.toTCPBuffer();
 
         assertThat(sender.sendMessage(gelfMessage)).isTrue();
 
-        sockets.poll().close();
+        Socket s = sockets.poll();
+        s.close();
         serverSocket.close();
+        Thread.sleep(50);
 
         assertThat(sender.sendMessage(gelfMessage)).isFalse();
 
         serverSocket = new ServerSocket(PORT);
+        thread = new Thread(thread.getName()) {
+            @Override
+            public void run() { /* leer, Server bereits neu gestartet */ }
+        };
+        thread.start();
+        serverReady.await(2, TimeUnit.SECONDS);
 
         assertThat(sender.sendMessage(gelfMessage)).isTrue();
-
         sender.close();
     }
 
@@ -181,20 +168,21 @@ class GelfTCPSenderIntegrationTests {
     void sendToNonConsumingPort() throws Exception {
 
         serverSocket.setReceiveBufferSize(100);
-        readFromServerSocket = false; // emulate read delays on a server side
+        readFromServerSocket = false; // emulate read delays
         thread.start();
-        final List<String> errors = new ArrayList<>();
+        serverReady.await(2, TimeUnit.SECONDS);
 
-        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", PORT, 1000, 1000, new ErrorReporter() {
-            @Override
-            public void reportError(String message, Exception e) {
-                errors.add(message);
-            }
-        });
+        final List<String> errors = new ArrayList<>();
+        SmallBufferTCPSender sender = new SmallBufferTCPSender("localhost", PORT, 1000, 1000, (m, e) -> errors.add(m));
 
         GelfMessage gelfMessage = new GelfMessage("hello", StringUtils.repeat("hello", 100000), PORT, "7");
-
         sender.sendMessage(gelfMessage);
+
+        // warten bis Error auftaucht
+        long start = System.currentTimeMillis();
+        while (errors.isEmpty() && (System.currentTimeMillis() - start < 2000)) {
+            Thread.sleep(10);
+        }
 
         assertThat(errors).hasSize(1);
         assertThat(errors).containsOnly("Cannot write buffer to channel, no progress in writing");
@@ -212,9 +200,7 @@ class GelfTCPSenderIntegrationTests {
         @Override
         protected SocketChannel createSocketChannel(int readTimeoutMs, boolean keepAlive) throws IOException {
             SocketChannel socketChannel = super.createSocketChannel(readTimeoutMs, keepAlive);
-
             socketChannel.socket().setSendBufferSize(100);
-
             return socketChannel;
         }
     }
